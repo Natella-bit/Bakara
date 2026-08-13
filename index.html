@@ -801,11 +801,61 @@
 
             const sendEmail = () => {
                 if(emails.length === 0) { ToastManager.add('יש להזין לפחות נמען אחד', 'error'); return; }
-                ToastManager.add('שולח דוח לנמענים...', 'info');
+                
+                ToastManager.add('פותח תוכנת דואר...', 'info');
+                
+                // בניית הנמענים והנושא
+                const to = emails.join(',');
+                const subject = encodeURIComponent(`דוח בקרת תיעוד - ${drillInfo.drillName || 'תרגיל'} - ${drillInfo.date}`);
+                
+                const totalSheets = audits.length;
+                const overallScore = totalSheets ? Math.round(audits.reduce((a,b)=>a+b.score,0)/totalSheets) : 0;
+                
+                // בניית גוף המייל כטקסט פשוט ומסודר
+                let bodyText = `דוח בקרת גיליונות - ניטור ובקרת תיעוד\n\n`;
+                bodyText += `שם התרגיל: ${drillInfo.drillName || 'לא צוין'}\n`;
+                bodyText += `תאריך: ${drillInfo.date}\n`;
+                bodyText += `בקר/ת: ${drillInfo.auditor}\n\n`;
+                
+                bodyText += `--- נתונים מדדיים ---\n`;
+                bodyText += `גיליונות שנבדקו: ${totalSheets}\n`;
+                bodyText += `ציון שלמות כוללת: ${overallScore}%\n\n`;
+                
+                bodyText += `--- סיכום מנהלים ---\n`;
+                bodyText += `${summaryText}\n\n`;
+                
+                bodyText += `--- פירוט הערות לדו"ח ---\n`;
+                const reportComments = audits.flatMap(a => a.comments.map(c => ({...c, site: a.site, sheetCode: a.sheetCode}))).filter(c => c.includeInReport);
+                
+                if(reportComments.length > 0) {
+                    reportComments.forEach(c => {
+                        const siteName = SITES.find(s=>s.id===c.site)?.name || 'לא ידוע';
+                        const levelLabel = COMMENT_LEVELS.find(l=>l.id===c.level)?.label || '';
+                        bodyText += `[${siteName} | גיליון ${c.sheetCode}] ${levelLabel}: ${c.text}\n`;
+                    });
+                } else {
+                    bodyText += `לא צוינו הערות מפורטות.\n`;
+                }
+                
+                bodyText += `\n\n* הופק באמצעות מערכת אר"ן Control *`;
+
+                const body = encodeURIComponent(bodyText);
+                const mailtoLink = `mailto:${to}?subject=${subject}&body=${body}`;
+
+                // בדיקת מגבלת אורך של דפדפנים עבור mailto (בסביבות 2000-2500 תווים)
+                if (mailtoLink.length > 2500) {
+                    ToastManager.add('הדוח ארוך מדי לשליחה ישירה. אנא הפק PDF וצרף למייל ידנית.', 'error');
+                    return;
+                }
+
+                // פתיחת אפליקציית המייל המקומית של המשתמש
+                window.location.href = mailtoLink;
+                
+                // סגירת חלונית המייל לאחר הפתיחה
                 setTimeout(() => {
-                    ToastManager.add(`הדוח נשלח בהצלחה ל-${emails.length} נמענים`, 'success');
-                    setShowEmail(false); setEmails([]);
-                }, 1500);
+                    setShowEmail(false); 
+                    setEmails([]);
+                }, 1000);
             };
 
             return (
