@@ -389,16 +389,11 @@
                                     </div>
                                 </div>
                             )}
-
-                            <label className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl cursor-pointer border border-gray-100">
-                                <input type="checkbox" checked={includeInReport} onChange={e => setIncludeInReport(e.target.checked)} className="w-5 h-5 text-accent-500 rounded border-gray-300 focus:ring-accent-500" />
-                                <span className="text-medical-900 font-bold text-sm">הצג הערה בדו״ח הסופי</span>
-                            </label>
                         </div>
-                        <div className="p-5 border-t bg-gray-50 flex gap-3">
-                            <Button variant="outline" className="flex-1" onClick={onClose}>ביטול</Button>
-                            <Button variant="accent" className={`flex-1 ${isCriticalMode ? '!bg-rose-600 !border-rose-700 !shadow-none' : ''}`} onClick={() => {
-                                onSave({ text, level, includeInReport, timestamp: getFormatTime(), date: getFormatDate() });
+                        <div className="p-5 bg-gray-50 border-t border-gray-100 flex gap-3">
+                            <Button variant="outline" className="w-1/3 bg-white" onClick={onClose}>ביטול</Button>
+                            <Button variant="primary" className="w-2/3" onClick={() => {
+                                onSave({ text, level, includeInReport });
                                 onClose();
                             }}>שמור הערה</Button>
                         </div>
@@ -407,7 +402,7 @@
             );
         };
 
-        const ViewLogin = ({ onStart }) => {
+        const ViewLogin = ({ onStart, existingDrill, onContinue }) => {
             const [name, setName] = useState('');
             const [drillName, setDrillName] = useState('');
             const today = getFormatDate();
@@ -440,6 +435,24 @@
                         
                         {}
                         <div className="p-7 space-y-6 bg-white/50">
+                            
+                            {existingDrill && (
+                                <div className="p-4 bg-white/80 rounded-2xl border-2 border-accent-400 shadow-sm text-center mb-4 fade-in">
+                                    <p className="text-sm font-bold text-medical-900 mb-3">
+                                        <i className="fas fa-history text-accent-500 ml-1"></i>
+                                        קיימת בקרה פעילה ({existingDrill.date})
+                                    </p>
+                                    <Button full variant="primary" icon="fa-arrow-left" className="mb-2 !py-3" onClick={onContinue}>
+                                        המשך מאותה נקודה
+                                    </Button>
+                                    <div className="flex items-center gap-2 my-4 opacity-50">
+                                        <div className="flex-1 border-t border-gray-400"></div>
+                                        <span className="text-xs font-bold text-gray-500">או התחל חדש</span>
+                                        <div className="flex-1 border-t border-gray-400"></div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-sm font-bold text-medical-900 mb-2 ml-1">שם הבקר/ת <span className="text-accent-500">*</span></label>
                                 <div className="relative group">
@@ -470,12 +483,12 @@
                             </div>
                             
                             {}
-                            <Button full icon="fa-play" className="mt-8 py-4 text-lg font-black tracking-wide pulse-soft !bg-gradient-to-r !from-accent-500 !to-accent-400 hover:!from-accent-600 hover:!to-accent-500 !shadow-[0_8px_20px_rgba(245,99,27,0.3)] hover:!shadow-[0_12px_25px_rgba(245,99,27,0.4)]" variant="accent"
+                            <Button full icon={existingDrill ? "fa-redo" : "fa-play"} className="mt-8 py-4 text-lg font-black tracking-wide pulse-soft !bg-gradient-to-r !from-accent-500 !to-accent-400 hover:!from-accent-600 hover:!to-accent-500 !shadow-[0_8px_20px_rgba(245,99,27,0.3)] hover:!shadow-[0_12px_25px_rgba(245,99,27,0.4)]" variant="accent"
                                 onClick={() => {
                                     if(!name) { ToastManager.add('יש להזין שם בקר', 'error'); return; }
                                     onStart({ auditor: name, drillName, date: today, startTime: getFormatTime() });
                                 }}>
-                                התחל בקרה
+                                {existingDrill ? 'מחק נתונים והתחל בקרה חדשה' : 'התחל בקרה'}
                             </Button>
                         </div>
                     </div>
@@ -1092,7 +1105,7 @@
                         const parsed = JSON.parse(saved);
                         if (parsed.drillInfo) setDrillInfo(parsed.drillInfo);
                         if (parsed.audits) setAudits(parsed.audits);
-                        if (parsed.drillInfo) setView('dashboard');
+                        // כעת לא מדלגים אוטומטית לעמוד לוח הבקרה, נותנים למשתמש לבחור במסך הכניסה
                     } catch(e) { console.error("Could not load state"); }
                 }
             }, []);
@@ -1118,7 +1131,17 @@
                 <div className="antialiased text-gray-900 font-sans max-w-2xl mx-auto shadow-2xl relative min-h-screen bg-white selection:bg-accent-500 selection:text-white">
                     <ToastContainer />
                     
-                    {view === 'login' && <ViewLogin onStart={(info) => { setDrillInfo(info); setView('dashboard'); }} />}
+                    {view === 'login' && (
+                        <ViewLogin 
+                            existingDrill={drillInfo}
+                            onContinue={() => setView('dashboard')}
+                            onStart={(info) => { 
+                                setDrillInfo(info); 
+                                setAudits([]); 
+                                setView('dashboard'); 
+                            }} 
+                        />
+                    )}
                     
                     {view === 'dashboard' && (
                         <ViewDashboard 
@@ -1139,16 +1162,21 @@
                         <ViewSummary drillInfo={drillInfo} audits={audits} onBack={() => setView('dashboard')} />
                     )}
 
-                    {view === 'dashboard' && (
+                    {(view === 'dashboard' || view === 'summary') && (
                         <div className="fixed bottom-0 w-full max-w-2xl bg-white/90 backdrop-blur-lg border-t border-gray-100 flex justify-around p-2 pb-safe shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.05)] z-40">
-                            <button onClick={() => setView('dashboard')} className="flex flex-col items-center p-2 text-medical-900 relative w-16">
-                                <div className="absolute inset-0 bg-medical-50 rounded-xl -z-10"></div>
-                                <i className="fas fa-home text-xl mb-1 text-accent-500"></i>
+                            <button onClick={() => setView('dashboard')} className={`flex flex-col items-center p-2 relative w-20 transition-colors ${view === 'dashboard' ? 'text-medical-900' : 'text-gray-400 hover:text-medical-900'}`}>
+                                {view === 'dashboard' && <div className="absolute inset-0 bg-medical-50 rounded-xl -z-10"></div>}
+                                <i className={`fas fa-home text-xl mb-1 ${view === 'dashboard' ? 'text-accent-500' : ''}`}></i>
                                 <span className="text-[10px] font-black">ראשי</span>
                             </button>
-                            <button onClick={() => setView('summary')} className="flex flex-col items-center p-2 text-gray-400 hover:text-medical-900 transition-colors w-16 group">
-                                <i className="fas fa-chart-pie text-xl mb-1 group-hover:text-accent-500 transition-colors"></i>
+                            <button onClick={() => setView('summary')} className={`flex flex-col items-center p-2 relative w-20 transition-colors group ${view === 'summary' ? 'text-medical-900' : 'text-gray-400 hover:text-medical-900'}`}>
+                                {view === 'summary' && <div className="absolute inset-0 bg-medical-50 rounded-xl -z-10"></div>}
+                                <i className={`fas fa-chart-pie text-xl mb-1 ${view === 'summary' ? 'text-accent-500' : 'group-hover:text-accent-500'}`}></i>
                                 <span className="text-[10px] font-bold">סיכום</span>
+                            </button>
+                            <button onClick={() => setView('login')} className="flex flex-col items-center p-2 text-gray-400 hover:text-rose-500 transition-colors w-20 group">
+                                <i className="fas fa-sign-out-alt text-xl mb-1 group-hover:text-rose-500 transition-colors"></i>
+                                <span className="text-[10px] font-bold">יציאה</span>
                             </button>
                         </div>
                     )}
