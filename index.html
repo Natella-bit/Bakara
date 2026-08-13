@@ -71,12 +71,50 @@
         
         /* Custom Selection */
         ::selection { background: #f5631b; color: white; }
+        
+        /* New animated gradient background for the login */
+        .bg-animated-gradient {
+            background: linear-gradient(-45deg, #f0f4f8, #d9e2ec, #ffffff, #e2e8f0);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Float animation for the logo */
+        .float-anim {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        /* Pulse animation for the play button */
+        .pulse-soft {
+            animation: pulseSoft 2s infinite;
+        }
+        @keyframes pulseSoft {
+            0% { box-shadow: 0 0 0 0 rgba(245, 99, 27, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(245, 99, 27, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 99, 27, 0); }
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
+        // תפיסת שגיאות הבטחה אסינכרוניות כדי למנוע קריסות או הודעות שגיאה מערכתיות
+        window.addEventListener('unhandledrejection', function(event) {
+            console.warn('Unhandled promise rejection caught:', event.reason);
+            event.preventDefault(); 
+        });
+
         const { useState, useEffect, useMemo, useRef } = React;
 
         const SITES = [
@@ -339,51 +377,64 @@
             const today = getFormatDate();
             
             return (
-                <div className="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-medical-100 via-white to-gray-50">
-                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden fade-in border border-white">
-                        <div className="bg-gradient-metallic p-8 text-center text-white relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-40 h-40 bg-accent-500 rounded-full blur-[50px] opacity-30 transform translate-x-1/2 -translate-y-1/2"></div>
+                <div className="min-h-screen flex items-center justify-center p-4 bg-animated-gradient relative overflow-hidden">
+                    {/* Abstract background shapes */}
+                    <div className="absolute top-10 left-10 w-64 h-64 bg-medical-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse"></div>
+                    <div className="absolute bottom-10 right-10 w-72 h-72 bg-accent-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" style={{ animationDelay: '2s' }}></div>
+
+                    <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden fade-in border border-white/50 relative z-10">
+                        {}
+                        <div className="p-8 text-center relative overflow-hidden bg-gradient-to-br from-medical-900 to-medical-700">
+                            {/* Decorative background elements in header */}
+                            <div className="absolute top-0 right-0 w-40 h-40 bg-accent-500 rounded-full blur-[60px] opacity-40 transform translate-x-1/2 -translate-y-1/2"></div>
+                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-medical-500 rounded-full blur-[40px] opacity-40 transform -translate-x-1/2 translate-y-1/2"></div>
                             
                             {/* Ziv Logo */}
-                            <div className="mb-6 flex justify-center relative z-10">
-                                <div className="bg-white p-4 rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-                                    <img src="ziv-logo-updated.png.png" alt="המרכז הרפואי זיו" className="h-16 object-contain" onError={(e) => e.target.style.display = 'none'} />
+                            <div className="mb-6 flex justify-center relative z-10 float-anim">
+                                <div className="bg-white/10 backdrop-blur-md p-4 rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-white/20">
+                                    <img src="ziv-logo-updated.png.png" alt="המרכז הרפואי זיו" className="h-16 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/200x80/transparent/ffffff?text=Ziv+Medical'; }} />
                                 </div>
                             </div>
 
-                            <h1 className="text-4xl font-black mb-2 flex justify-center items-center gap-2 tracking-tight relative z-10">
-                                ניטור ובקרת <span className="text-accent-500">תיעוד</span>
+                            <h1 className="text-4xl font-black mb-2 flex justify-center items-center gap-2 tracking-tight relative z-10 text-white">
+                                ניטור ובקרת <span className="text-accent-400 drop-shadow-[0_0_10px_rgba(250,128,66,0.8)]">תיעוד</span>
                             </h1>
-                            <p className="text-medical-100 font-medium opacity-90 text-sm relative z-10">בקרת איכות תיעוד בזמן אמת</p>
+                            <p className="text-medical-50 font-medium opacity-90 text-sm relative z-10 tracking-wide">בקרת איכות תיעוד בזמן אמת</p>
                         </div>
-                        <div className="p-7 space-y-6">
+                        
+                        {}
+                        <div className="p-7 space-y-6 bg-white/50">
                             <div>
-                                <label className="block text-sm font-bold text-medical-900 mb-2">שם הבקר/ת *</label>
+                                <label className="block text-sm font-bold text-medical-900 mb-2 ml-1">שם הבקר/ת <span className="text-accent-500">*</span></label>
                                 <div className="relative group">
-                                    <i className="fas fa-user-md absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-accent-500 transition-colors"></i>
-                                    <input type="text" className="w-full border-2 border-gray-100 bg-gray-50 rounded-2xl py-4 pl-4 pr-12 focus:bg-white transition-all text-medical-900 font-bold" 
+                                    <i className="fas fa-user-md absolute right-4 top-1/2 transform -translate-y-1/2 text-medical-400 group-focus-within:text-accent-500 transition-colors text-lg"></i>
+                                    <input type="text" className="w-full border-2 border-medical-100 bg-white/70 rounded-2xl py-4 pl-4 pr-12 focus:bg-white focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 transition-all text-medical-900 font-bold shadow-sm" 
                                         value={name} onChange={e => setName(e.target.value)} placeholder="הזן שם מלא..." />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-medical-900 mb-2">שם התרגיל (אופציונלי)</label>
+                                <label className="block text-sm font-bold text-medical-900 mb-2 ml-1">שם התרגיל <span className="text-gray-400 font-normal">(אופציונלי)</span></label>
                                 <div className="relative group">
-                                    <i className="fas fa-shield-alt absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-accent-500 transition-colors"></i>
-                                    <input type="text" className="w-full border-2 border-gray-100 bg-gray-50 rounded-2xl py-4 pl-4 pr-12 focus:bg-white transition-all text-medical-900 font-bold" 
+                                    <i className="fas fa-shield-alt absolute right-4 top-1/2 transform -translate-y-1/2 text-medical-400 group-focus-within:text-accent-500 transition-colors text-lg"></i>
+                                    <input type="text" className="w-full border-2 border-medical-100 bg-white/70 rounded-2xl py-4 pl-4 pr-12 focus:bg-white focus:border-accent-400 focus:ring-4 focus:ring-accent-500/10 transition-all text-medical-900 font-bold shadow-sm" 
                                         value={drillName} onChange={e => setDrillName(e.target.value)} placeholder="לדוגמה: מגן זהב 2026..." />
                                 </div>
                             </div>
+                            
+                            {}
                             <div className="grid grid-cols-2 gap-3 pt-2">
-                                <div className="bg-medical-50 p-4 rounded-2xl border border-medical-100 flex flex-col items-center justify-center">
-                                    <i className="far fa-calendar-alt text-medical-500 mb-2 text-lg"></i>
-                                    <span className="font-bold text-medical-900 text-sm">{today}</span>
+                                <div className="bg-gradient-to-br from-medical-50 to-white p-4 rounded-2xl border border-medical-100 flex flex-col items-center justify-center shadow-sm">
+                                    <i className="far fa-calendar-alt text-accent-500 mb-2 text-xl drop-shadow-sm"></i>
+                                    <span className="font-bold text-medical-900 text-sm tracking-wide">{today}</span>
                                 </div>
-                                <div className="bg-medical-50 p-4 rounded-2xl border border-medical-100 flex flex-col items-center justify-center">
-                                    <i className="far fa-clock text-medical-500 mb-2 text-lg"></i>
-                                    <span className="font-bold text-medical-900 text-sm">{getFormatTime()}</span>
+                                <div className="bg-gradient-to-br from-medical-50 to-white p-4 rounded-2xl border border-medical-100 flex flex-col items-center justify-center shadow-sm">
+                                    <i className="far fa-clock text-accent-500 mb-2 text-xl drop-shadow-sm"></i>
+                                    <span className="font-bold text-medical-900 text-sm tracking-wide">{getFormatTime()}</span>
                                 </div>
                             </div>
-                            <Button full icon="fa-play" className="mt-8 py-4 text-lg" variant="accent"
+                            
+                            {}
+                            <Button full icon="fa-play" className="mt-8 py-4 text-lg font-black tracking-wide pulse-soft !bg-gradient-to-r !from-accent-500 !to-accent-400 hover:!from-accent-600 hover:!to-accent-500 !shadow-[0_8px_20px_rgba(245,99,27,0.3)] hover:!shadow-[0_12px_25px_rgba(245,99,27,0.4)]" variant="accent"
                                 onClick={() => {
                                     if(!name) { ToastManager.add('יש להזין שם בקר', 'error'); return; }
                                     onStart({ auditor: name, drillName, date: today, startTime: getFormatTime() });
@@ -717,7 +768,7 @@
                 setSummaryText(text);
             }, [audits]);
 
-            const generatePDF = () => {
+            const generatePDF = async () => {
                 ToastManager.add('מפיק קובץ PDF...', 'info');
                 const element = reportRef.current;
                 const opt = {
@@ -727,12 +778,14 @@
                     html2canvas: { scale: 2, useCORS: true },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
-                html2pdf().set(opt).from(element).save()
-                    .then(() => ToastManager.add('קובץ נשמר בהצלחה', 'success'))
-                    .catch(err => {
-                        console.error('PDF Generation Error:', err);
-                        ToastManager.add('שגיאה בהפקת הקובץ', 'error');
-                    });
+                
+                try {
+                    await html2pdf().set(opt).from(element).save();
+                    ToastManager.add('קובץ נשמר בהצלחה', 'success');
+                } catch (err) {
+                    console.error('PDF Generation Error:', err);
+                    ToastManager.add('שגיאה בהפקת הקובץ. ייתכן שיש חסימה בדפדפן.', 'error');
+                }
             };
 
             const handleEmailAdd = (e) => {
@@ -768,7 +821,7 @@
                             <div className="border-b-2 border-medical-100 pb-6 mb-6 text-center">
                                  {/* Ziv Logo in PDF */}
                                  <div className="mb-4 flex justify-center">
-                                    <img src="ziv-logo-updated.png.png" alt="המרכז הרפואי זיו" className="h-20 object-contain" onError={(e) => e.target.style.display = 'none'} />
+                                    <img src="ziv-logo-updated.png.png" alt="המרכז הרפואי זיו" className="h-20 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/200x80/transparent/103058?text=Ziv+Medical'; }} />
                                 </div>
                                 <h1 className="text-3xl font-black text-medical-900 mb-2">דוח בקרת גיליונות</h1>
                                 <p className="text-accent-500 font-bold text-xl">{drillInfo.drillName || 'תרגיל'}</p>
