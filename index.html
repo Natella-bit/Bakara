@@ -209,6 +209,15 @@
             { id: 'critical', label: 'פער קריטי', color: 'text-rose-700 font-bold' }
         ];
 
+        const getQuestionLabel = (qId) => {
+            if (qId === 'general') return 'הערה כללית';
+            for (const section in Q_BANK) {
+                const q = Q_BANK[section].find(x => x.id === qId);
+                if (q) return q.label;
+            }
+            return 'סעיף כללי';
+        };
+
         const generateId = () => Math.random().toString(36).substr(2, 9);
         const getFormatTime = () => {
             const d = new Date();
@@ -859,6 +868,21 @@
                 }]
             };
 
+            const reportComments = audits.flatMap(a => a.comments.map(c => ({
+                ...c, 
+                site: a.site, 
+                sheetCode: a.sheetCode,
+                qLabel: getQuestionLabel(c.qId)
+            }))).filter(c => c.includeInReport);
+
+            const commentsBySite = {};
+            SITES.forEach(site => {
+                const siteComments = reportComments.filter(c => c.site === site.id);
+                if (siteComments.length > 0) {
+                    commentsBySite[site.id] = { name: site.name, comments: siteComments };
+                }
+            });
+
             const generateReportString = () => {
                 let bodyText = `*דוח בקרת גיליונות - ניטור ובקרת תיעוד*\n\n`;
                 bodyText += `*שם התרגיל:* ${drillInfo.drillName || 'לא צוין'}\n`;
@@ -874,13 +898,15 @@
                 bodyText += `${summaryText}\n\n`;
                 
                 bodyText += `--- פירוט הערות לדו"ח ---\n`;
-                const reportComments = audits.flatMap(a => a.comments.map(c => ({...c, site: a.site, sheetCode: a.sheetCode}))).filter(c => c.includeInReport);
                 
-                if(reportComments.length > 0) {
-                    reportComments.forEach(c => {
-                        const siteName = SITES.find(s=>s.id===c.site)?.name || 'לא ידוע';
-                        const levelLabel = COMMENT_LEVELS.find(l=>l.id===c.level)?.label || '';
-                        bodyText += `[${siteName} | גיליון ${c.sheetCode}] ${levelLabel}: ${c.text}\n`;
+                if(Object.keys(commentsBySite).length > 0) {
+                    Object.values(commentsBySite).forEach(siteGroup => {
+                        bodyText += `\n📍 *${siteGroup.name}:*\n`;
+                        siteGroup.comments.forEach(c => {
+                            const levelLabel = COMMENT_LEVELS.find(l=>l.id===c.level)?.label || '';
+                            const icon = c.level === 'critical' ? '🚩' : (c.level === 'significant' ? '⚠️' : '📝');
+                            bodyText += `- [גיליון ${c.sheetCode} | ${c.qLabel}] ${icon} ${levelLabel}: ${c.text}\n`;
+                        });
                     });
                 } else {
                     bodyText += `לא צוינו הערות מפורטות.\n`;
@@ -1023,25 +1049,42 @@
 
                             <div>
                                 <h3 className="font-bold text-lg text-medical-900 border-b-2 border-accent-500 inline-block pb-1 mb-4"><i className="fas fa-list-ul text-accent-500 ml-2"></i>פירוט הערות לדו״ח</h3>
-                                <div className="space-y-4">
-                                    {audits.flatMap(a => a.comments.map(c => ({...c, site: a.site, sheetCode: a.sheetCode})))
-                                        .filter(c => c.includeInReport)
-                                        .map((c, i) => (
-                                            <div key={i} className={`p-5 rounded-2xl border-r-4 text-sm bg-gray-50 
-                                                ${c.level === 'critical' ? 'border-r-rose-500 shadow-[inset_0_0_0_1px_rgba(244,63,94,0.1)]' : 
-                                                  c.level === 'significant' ? 'border-r-amber-400 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.1)]' : 
-                                                  'border-r-medical-300 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)]'}`}>
-                                                <div className="flex justify-between items-center text-xs font-bold text-gray-500 mb-2">
-                                                    <span className="bg-white px-3 py-1 rounded-lg shadow-sm border border-gray-100 text-medical-900">{SITES.find(s=>s.id===c.site)?.name} | גיליון {c.sheetCode}</span>
-                                                    <span className={`${COMMENT_LEVELS.find(l=>l.id===c.level)?.color} flex items-center gap-1`}>
-                                                        {c.level === 'critical' && <i className="fas fa-flag"></i>}
-                                                        {COMMENT_LEVELS.find(l=>l.id===c.level)?.label}
-                                                    </span>
+                                {Object.keys(commentsBySite).length > 0 ? (
+                                    <div className="space-y-6">
+                                        {Object.values(commentsBySite).map((siteGroup, siteIdx) => (
+                                            <div key={siteIdx} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                                                <h4 className="font-black text-medical-900 mb-4 text-lg flex items-center gap-2 border-b border-gray-100 pb-2">
+                                                    <div className="w-8 h-8 bg-medical-50 text-medical-700 rounded-lg flex items-center justify-center shadow-inner"><i className="fas fa-map-marker-alt"></i></div>
+                                                    {siteGroup.name}
+                                                </h4>
+                                                <div className="space-y-4">
+                                                    {siteGroup.comments.map((c, i) => (
+                                                        <div key={i} className={`p-4 rounded-xl border-r-4 text-sm bg-gray-50 
+                                                            ${c.level === 'critical' ? 'border-r-rose-500 shadow-[inset_0_0_0_1px_rgba(244,63,94,0.1)]' : 
+                                                              c.level === 'significant' ? 'border-r-amber-400 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.1)]' : 
+                                                              'border-r-medical-300 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)]'}`}>
+                                                            <div className="flex flex-wrap justify-between items-center text-xs font-bold text-gray-500 mb-2 gap-2">
+                                                                <span className="bg-white px-2.5 py-1.5 rounded-md shadow-sm border border-gray-100 text-medical-900 flex items-center gap-1">
+                                                                    <i className="fas fa-file-medical text-medical-400"></i> 
+                                                                    <span>גיליון {c.sheetCode}</span> 
+                                                                    <span className="text-gray-300 mx-1">|</span> 
+                                                                    <span className="text-accent-600">{c.qLabel}</span>
+                                                                </span>
+                                                                <span className={`${COMMENT_LEVELS.find(l=>l.id===c.level)?.color} flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-gray-100 shadow-sm`}>
+                                                                    {c.level === 'critical' && <i className="fas fa-flag"></i>}
+                                                                    {COMMENT_LEVELS.find(l=>l.id===c.level)?.label}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-gray-800 text-base font-medium">{c.text}</p>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                                <p className="text-gray-800 text-base font-medium">{c.text}</p>
                                             </div>
-                                    ))}
-                                </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-gray-500 bg-gray-50 p-4 rounded-xl text-center border border-dashed border-gray-200">לא נרשמו הערות מפורטות.</div>
+                                )}
                             </div>
                         </div>
                     </div>
